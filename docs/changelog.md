@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Activity log at `~/.lerim/activity.log` — one line per sync/maintain cycle with timestamp, project, stats, and duration. Only logs when work was actually done.
+- `run_maintain_once` now iterates over all registered projects in `config.projects`, running memory maintenance (decay, archive, consolidation) for each. Previously only maintained the CWD-based project.
 
 ### Fixed
 

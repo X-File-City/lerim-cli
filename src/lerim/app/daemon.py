@@ -592,26 +592,63 @@ def run_maintain_once(
         return EXIT_LOCK_BUSY, {"error": str(exc)}
 
     try:
-        agent = LerimAgent(default_cwd=str(Path.cwd()))
-        result = agent.maintain()
+        config = get_config()
+        projects = config.projects or {}
+        if not projects:
+            # No registered projects — maintain CWD-based fallback.
+            projects = {"global": str(Path.cwd())}
+
+        results: dict[str, dict] = {}
+        failed_projects: list[str] = []
+        for project_name, project_path_str in projects.items():
+            project_path = Path(project_path_str).expanduser().resolve()
+            if not project_path.is_dir():
+                continue
+            project_memory = str(project_path / ".lerim" / "memory")
+            try:
+                agent = LerimAgent(default_cwd=str(project_path))
+                result = agent.maintain(memory_root=project_memory)
+                results[project_name] = result
+                # Activity log per project.
+                counts = (
+                    (result.get("counts") or {}) if isinstance(result, dict) else {}
+                )
+                parts = []
+                for key in ("merged", "archived", "consolidated", "decayed"):
+                    val = counts.get(key, 0)
+                    if val:
+                        parts.append(f"{val} {key}")
+                if parts:
+                    log_activity(
+                        "maintain",
+                        project_name,
+                        ", ".join(parts),
+                        time.monotonic() - t0,
+                    )
+            except Exception as exc:
+                failed_projects.append(project_name)
+                results[project_name] = {"error": str(exc)}
+
+        status = (
+            "failed"
+            if failed_projects and not (set(projects) - set(failed_projects))
+            else ("partial" if failed_projects else "completed")
+        )
+        details = {"projects": results}
         _record_service_event(
             record_service_run,
             job_type="maintain",
-            status="completed",
+            status=status,
             started_at=started,
             trigger="manual",
-            details=result,
+            details=details,
         )
-        counts = (result.get("counts") or {}) if isinstance(result, dict) else {}
-        parts = []
-        for key in ("merged", "archived", "consolidated", "decayed"):
-            val = counts.get(key, 0)
-            if val:
-                parts.append(f"{val} {key}")
-        if parts:
-            project = Path.cwd().name
-            log_activity("maintain", project, ", ".join(parts), time.monotonic() - t0)
-        return EXIT_OK, result
+        code = (
+            EXIT_FATAL
+            if status == "failed"
+            else (EXIT_PARTIAL if status == "partial" else EXIT_OK)
+        )
+        return code, details
     except Exception as exc:
         _record_service_event(
             record_service_run,

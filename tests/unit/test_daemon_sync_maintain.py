@@ -120,13 +120,13 @@ def test_sync_force_enqueues_changed_sessions(monkeypatch, tmp_path) -> None:
 
 
 def test_maintain_calls_agent(monkeypatch, tmp_path) -> None:
-    """Maintain flow calls LerimAgent.maintain() and returns result."""
+    """Maintain flow calls LerimAgent.maintain() for each registered project."""
     _setup(tmp_path, monkeypatch)
-    called = []
+    called: list[str] = []
     monkeypatch.setattr(
         "lerim.runtime.agent.LerimAgent.maintain",
         lambda self, **kw: (
-            called.append(True),
+            called.append(kw.get("memory_root", "")),
             {
                 "counts": {
                     "merged": 0,
@@ -139,7 +139,9 @@ def test_maintain_calls_agent(monkeypatch, tmp_path) -> None:
     )
     code, payload = daemon.run_maintain_once(force=False, dry_run=False)
     assert code == daemon.EXIT_OK
-    assert len(called) == 1
+    assert len(called) >= 1
+    # Each call should pass an explicit memory_root.
+    assert all(r for r in called)
 
 
 def test_config_has_separate_interval_fields(tmp_path) -> None:
