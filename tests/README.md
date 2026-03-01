@@ -6,13 +6,13 @@
 # Unit tests (no LLM, no network, ~2s)
 tests/run_tests.sh unit
 
-# Smoke tests (requires LLM — default: openrouter, ~80s)
+# Smoke tests (requires LLM, parallel via pytest-xdist, ~40s)
 tests/run_tests.sh smoke
 
-# Integration tests (requires LLM, ~5 min)
+# Integration tests (requires LLM, parallel via pytest-xdist, ~3 min)
 tests/run_tests.sh integration
 
-# E2E tests (requires LLM, full CLI flows, ~3-10 min)
+# E2E tests (requires LLM, parallel via pytest-xdist, ~5 min)
 tests/run_tests.sh e2e
 
 # All categories
@@ -21,7 +21,7 @@ tests/run_tests.sh all
 
 The test runner auto-activates `.venv` if not already active and `cd`s to the project root.
 Override the test LLM provider/model via env vars `LERIM_TEST_PROVIDER` and `LERIM_TEST_MODEL`, or via `tests/test_config.toml`.
-Default provider: `openrouter/qwen/qwen3-coder-30b-a3b-instruct` for all roles.
+Default models: `x-ai/grok-4.1-fast` (lead/explorer), `openai/gpt-5-nano` (extract/summarize), all via `openrouter`.
 
 ## Directory Structure
 
@@ -106,7 +106,7 @@ Fast, deterministic tests with no LLM calls and no network. External state (conf
 
 ### Smoke (`pytest tests/smoke/`)
 
-Quick LLM sanity checks. Skipped unless `LERIM_SMOKE=1` is set. Default provider: `openrouter/qwen/qwen3-coder-30b-a3b-instruct`.
+Quick LLM sanity checks. Skipped unless `LERIM_SMOKE=1` is set. Default models: `x-ai/grok-4.1-fast` (lead/explorer), `openai/gpt-5-nano` (extract/summarize).
 
 | File | What it tests |
 |------|---------------|
@@ -134,7 +134,7 @@ Full CLI command flows as a user would invoke them. Skipped unless `LERIM_E2E=1`
 | `test_sync.py` | `lerim sync` against fixture traces creates memories; re-running is idempotent |
 | `test_maintain.py` | `lerim maintain` on seeded memories performs maintenance actions |
 | `test_full_cycle.py` | Full lifecycle: reset -> sync -> ask |
-| `test_real.py` | Real-world e2e with actual connected platforms |
+| `test_real.py` | `LerimAgent.ask()` returns a response from a real LLM; extract pipeline with mocked DSPy |
 | `test_context_layers.py` | Context layer resolution end-to-end |
 | `test_memory_write_modes.py` | Agent memory write modes end-to-end |
 
@@ -203,13 +203,13 @@ Shared pytest fixtures available to all test tiers:
 
 ## Environment Variables
 
-| Variable | Required for | Default LLM |
-|----------|-------------|-------------|
-| `LERIM_SMOKE=1` | Smoke tests | `openrouter/qwen/qwen3-coder-30b-a3b-instruct` |
-| `LERIM_INTEGRATION=1` | Integration tests | `openrouter/qwen/qwen3-coder-30b-a3b-instruct` |
-| `LERIM_E2E=1` | E2E tests | `openrouter/qwen/qwen3-coder-30b-a3b-instruct` |
+| Variable | Required for | Default |
+|----------|-------------|---------|
+| `LERIM_SMOKE=1` | Smoke tests | See `tests/test_config.toml` |
+| `LERIM_INTEGRATION=1` | Integration tests | See `tests/test_config.toml` |
+| `LERIM_E2E=1` | E2E tests | See `tests/test_config.toml` |
 | `LERIM_TEST_PROVIDER` | Override provider | `openrouter` |
-| `LERIM_TEST_MODEL` | Override model | `qwen/qwen3-coder-30b-a3b-instruct` |
+| `LERIM_TEST_MODEL` | Override model | `x-ai/grok-4.1-fast` (lead/explorer) |
 | `LERIM_CONFIG` | Override config path | `tests/test_config.toml` (auto-applied by conftest) |
 
 ## Adding New Tests
