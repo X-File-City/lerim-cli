@@ -121,7 +121,7 @@ Memory scope modes:
   <img src="../assets/maintain.png" alt="Maintain path" width="700">
 </p>
 
-**maintain**: agent-led offline memory refinement. Scans existing memories, merges duplicates, archives low-value entries, consolidates related memories. Soft-deletes to `archived/` via the `write` tool. Single agent run with comprehensive prompt.
+**maintain**: agent-led offline memory refinement. Scans existing memories, merges duplicates, archives low-value entries, consolidates related memories. Creates new consolidated memories via `write_memory`, soft-deletes to `archived/` via `write`. Single agent run with comprehensive prompt.
 
 ### Query path
 
@@ -133,7 +133,7 @@ Memory scope modes:
 
 The lead agent (PydanticAI) orchestrates all flows. It is the only component allowed to write memory files.
 
-- **Runtime tools**: `read`, `glob`, `grep`, `write`, `edit`, `extract_pipeline`, `summarize_pipeline`
+- **Runtime tools**: `read`, `glob`, `grep`, `write`, `write_memory`, `edit`, `extract_pipeline`, `summarize_pipeline`
 - **Write boundary**: runtime tools deny writes outside `memory_root` and workspace roots
 - **All file operations** use Python tools (no shell/subprocess)
 
@@ -191,7 +191,8 @@ Full endpoint list in `src/lerim/app/dashboard.py`.
 ## Security boundaries
 
 - Runtime tools deny `write` and `edit` outside `memory_root` and workspace roots
-- Memory writes are normalized to canonical markdown frontmatter and filename rules
+- Memory files (decisions/learnings) can only be created via `write_memory` tool, which accepts structured fields and builds markdown in Python — the LLM never assembles frontmatter directly
+- `write` tool rejects memory primitive paths with `ModelRetry`, directing the LLM to use `write_memory` instead
 - All file operations use Python tools (no shell/subprocess)
 - Explorer subagent is read-only (`read`, `glob`, `grep` only)
 - HTTP API binds to `127.0.0.1` by default (localhost only, no auth needed)
