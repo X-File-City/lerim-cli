@@ -1,0 +1,232 @@
+{
+  "id": "lerim-cli-onboarding",
+  "title": "Lerim CLI: Continual Learning for AI Agents",
+  "description": "A guided tour of the Lerim CLI codebase -- the continual learning layer that gives AI coding agents persistent memory across sessions.",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "overview",
+      "title": "Welcome to Lerim",
+      "description": "Lerim solves 'agent context amnesia' -- the problem where every new session with Claude Code, Cursor, Codex, or OpenCode starts from scratch. It watches session transcripts, extracts decisions and learnings via LLM pipelines, stores them as plain markdown files, and serves them back on demand. This is the full codebase at a glance.",
+      "focusDirectory": "",
+      "colorMode": "fileTypes"
+    },
+    {
+      "id": "app-layer",
+      "title": "Application Layer: CLI, API & Daemon",
+      "description": "The public-facing layer of Lerim. cli.py defines all argparse commands. api.py holds shared business logic called by both CLI and HTTP. daemon.py orchestrates the sync+maintain background loop. dashboard.py is a self-contained HTTP server serving the Alpine.js dashboard SPA. Service commands (ask, sync, maintain) are thin HTTP clients posting to localhost:8765 -- host-only commands (init, project, memory) run locally.",
+      "focusDirectory": "src/lerim/app",
+      "colorMode": "fileTypes",
+      "highlightLayers": [
+        {
+          "id": "entry-points",
+          "name": "Entry Points",
+          "color": "#3b82f6",
+          "items": [
+            { "path": "src/lerim/app/cli.py", "type": "file" },
+            { "path": "src/lerim/app/api.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "border"
+        },
+        {
+          "id": "daemon-and-server",
+          "name": "Daemon & Server",
+          "color": "#f59e0b",
+          "items": [
+            { "path": "src/lerim/app/daemon.py", "type": "file" },
+            { "path": "src/lerim/app/dashboard.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "border"
+        }
+      ]
+    },
+    {
+      "id": "adapters",
+      "title": "Platform Adapters",
+      "description": "Each adapter implements the Adapter protocol (structural subtyping) from base.py to normalize platform-specific session formats into ViewerSession/SessionRecord objects. Supported platforms: Claude Code (JSONL), Codex (JSONL), Cursor (SQLite), and OpenCode (SQLite). The registry dynamically imports the right module by name -- adding a new platform means writing one module with default_path(), count_sessions(), iter_sessions(), and read_session().",
+      "focusDirectory": "src/lerim/adapters",
+      "colorMode": "fileTypes",
+      "highlightLayers": [
+        {
+          "id": "adapter-protocol",
+          "name": "Protocol Definition",
+          "color": "#8b5cf6",
+          "items": [
+            { "path": "src/lerim/adapters/base.py", "type": "file" },
+            { "path": "src/lerim/adapters/registry.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "border"
+        },
+        {
+          "id": "platform-adapters",
+          "name": "Platform Implementations",
+          "color": "#10b981",
+          "items": [
+            { "path": "src/lerim/adapters/claude.py", "type": "file" },
+            { "path": "src/lerim/adapters/codex.py", "type": "file" },
+            { "path": "src/lerim/adapters/cursor.py", "type": "file" },
+            { "path": "src/lerim/adapters/opencode.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "border"
+        }
+      ]
+    },
+    {
+      "id": "memory-layer",
+      "title": "Memory Layer: File-First Storage & DSPy Pipelines",
+      "description": "The core of Lerim. Memories are plain .md files with YAML frontmatter organized into decisions/, learnings/, and summaries/ folders. extract_pipeline.py uses DSPy ChainOfThought signatures to window transcripts, extract memory candidates, and merge/deduplicate them. summarization_pipeline.py produces structured session summaries. memory_record.py defines the MemoryRecord model with to_markdown() serialization. The LLM never constructs raw YAML -- it calls write_memory_tool which builds frontmatter in Python.",
+      "focusDirectory": "src/lerim/memory",
+      "colorMode": "fileTypes",
+      "highlightLayers": [
+        {
+          "id": "memory-models",
+          "name": "Models & Schema",
+          "color": "#ef4444",
+          "items": [
+            { "path": "src/lerim/memory/schemas.py", "type": "file" },
+            { "path": "src/lerim/memory/memory_record.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "border"
+        },
+        {
+          "id": "dspy-pipelines",
+          "name": "DSPy Pipelines",
+          "color": "#f59e0b",
+          "items": [
+            { "path": "src/lerim/memory/extract_pipeline.py", "type": "file" },
+            { "path": "src/lerim/memory/summarization_pipeline.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "border"
+        }
+      ]
+    },
+    {
+      "id": "runtime",
+      "title": "AI Agent Runtime: PydanticAI Agents & Tools",
+      "description": "The heart of the system. agent.py builds a two-tier PydanticAI agent architecture: a lead agent (can read AND write memory) and an explorer subagent (strictly read-only). tools.py defines all runtime tools with write-boundary enforcement -- paths outside allowed roots trigger ModelRetry. Three permission sets control what each flow can do: CHAT_TOOLS (ask), SYNC_TOOLS (extract), MAINTAIN_TOOLS (merge/archive). providers.py supports MiniMax, Z.AI, OpenRouter, OpenAI, and Anthropic with fallback chains.",
+      "focusDirectory": "src/lerim/runtime",
+      "colorMode": "fileTypes",
+      "highlightLayers": [
+        {
+          "id": "agents",
+          "name": "Agent Architecture",
+          "color": "#3b82f6",
+          "items": [
+            { "path": "src/lerim/runtime/agent.py", "type": "file" },
+            { "path": "src/lerim/runtime/subagents.py", "type": "file" },
+            { "path": "src/lerim/runtime/tools.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "border"
+        },
+        {
+          "id": "runtime-infra",
+          "name": "Providers & Prompts",
+          "color": "#ec4899",
+          "items": [
+            { "path": "src/lerim/runtime/providers.py", "type": "file" },
+            { "path": "src/lerim/runtime/prompts", "type": "directory" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "border"
+        }
+      ]
+    },
+    {
+      "id": "sessions-and-config",
+      "title": "Sessions & Configuration",
+      "description": "The sessions module provides a SQLite-backed session catalog and durable job queue (catalog.py) -- it indexes sessions, manages claim/complete/fail lifecycle for extraction jobs, and records service runs. The config module implements TOML-layered configuration: package defaults -> ~/.lerim/config.toml -> repo .lerim/config.toml -> env override. Four LLM roles (lead, explorer, extract, summarize) can each target different providers and models.",
+      "focusDirectory": "src/lerim",
+      "colorMode": "fileTypes",
+      "highlightLayers": [
+        {
+          "id": "sessions",
+          "name": "Session Catalog",
+          "color": "#06b6d4",
+          "items": [
+            { "path": "src/lerim/sessions/catalog.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "border"
+        },
+        {
+          "id": "config",
+          "name": "Configuration",
+          "color": "#a855f7",
+          "items": [
+            { "path": "src/lerim/config/settings.py", "type": "file" },
+            { "path": "src/lerim/config/default.toml", "type": "file" },
+            { "path": "src/lerim/config/project_scope.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "border"
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "title": "Test Suite",
+      "description": "Comprehensive test coverage across four tiers: unit/ (47 files -- adapter tests, memory tests, CLI tests, config tests, tool tests), integration/ (real LLM calls for extraction, summarization, agent flows), e2e/ (full cycle sync/maintain flows), and smoke/ (quick Ollama-based sanity checks). conftest.py provides shared fixtures and helpers.py contains test utilities.",
+      "focusDirectory": "tests",
+      "colorMode": "fileTypes",
+      "highlightLayers": [
+        {
+          "id": "test-tiers",
+          "name": "Test Tiers",
+          "color": "#22c55e",
+          "items": [
+            { "path": "tests/unit", "type": "directory" },
+            { "path": "tests/integration", "type": "directory" },
+            { "path": "tests/e2e", "type": "directory" }
+          ],
+          "opacity": 0.7,
+          "renderStrategy": "border"
+        }
+      ]
+    },
+    {
+      "id": "infrastructure",
+      "title": "Infrastructure & Dashboard",
+      "description": "The supporting infrastructure: pyproject.toml defines the build, all dependencies (pydantic-ai, dspy, logfire, loguru), and the lerim entry point. Dockerfile builds a python:3.12-slim image with ripgrep, exposing port 8765. The dashboard/ directory contains a self-contained Alpine.js + ECharts single-page app with tabs for Overview, Runs, Memories, Pipeline, and Settings. docs/ holds the MkDocs documentation site (docs.lerim.dev).",
+      "focusDirectory": "",
+      "colorMode": "fileTypes",
+      "highlightLayers": [
+        {
+          "id": "build-config",
+          "name": "Build & Deploy",
+          "color": "#f97316",
+          "items": [
+            { "path": "pyproject.toml", "type": "file" },
+            { "path": "Dockerfile", "type": "file" },
+            { "path": "mkdocs.yml", "type": "file" }
+          ],
+          "opacity": 0.7,
+          "renderStrategy": "border"
+        },
+        {
+          "id": "dashboard-docs",
+          "name": "Dashboard & Docs",
+          "color": "#06b6d4",
+          "items": [
+            { "path": "dashboard", "type": "directory" },
+            { "path": "docs", "type": "directory" }
+          ],
+          "opacity": 0.7,
+          "renderStrategy": "border"
+        }
+      ]
+    },
+    {
+      "id": "full-picture",
+      "title": "The Full Picture",
+      "description": "Lerim's architecture flows in two loops: the hot path (sync every 10 min) discovers sessions via adapters, extracts memories through DSPy pipelines, and the lead agent decides what to store. The cold path (maintain every 60 min) merges duplicates, archives stale memories, and applies confidence decay. All of this is orchestrated by the daemon, exposed via HTTP, and visualized in the dashboard. Memories live as plain markdown files -- no database lock-in, fully inspectable, version-controllable.",
+      "focusDirectory": ""
+    }
+  ]
+}
